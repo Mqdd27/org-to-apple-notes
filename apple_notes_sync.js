@@ -1,45 +1,55 @@
 #!/usr/bin/env osascript -l JavaScript
-// Usage: osascript -l JavaScript apple-notes-sync.js "<Note Title>" "/path/to/file.html"
-// Creates the note if it doesn't exist, otherwise overwrites its body.
-
 ObjC.import('Foundation');
 
 function readFile(path) {
   const fm = $.NSFileManager.defaultManager;
+  if (!fm.fileExistsAtPath(path)) return null;
   const data = fm.contentsAtPath(path);
-  if (!data) {
-    throw new Error(`Could not read file at ${path}`);
-  }
+  if (!data) return null;
   const nsStr = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding);
   return ObjC.unwrap(nsStr);
 }
 
+function writeFile(path, content) {
+  const nsStr = $.NSString.alloc.initWithUTF8String(content);
+  nsStr.writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null);
+}
+
 function run(argv) {
-  if (argv.length < 2) {
-    console.log("Usage: apple-notes-sync.js <title> <html-file-path>");
+  if (argv.length < 3) {
+    console.log("Usage: apple_notes_sync.js <title> <html-file-path> <id-cache-file-path>");
     return;
   }
 
   const title = argv[0];
   const htmlPath = argv[1];
+  const idCachePath = argv[2];
 
-  // Read the file ourselves (NOT via Notes.app's sandbox) to avoid -10004
   const html = readFile(htmlPath);
-
   const app = Application('Notes');
   app.includeStandardAdditions = true;
 
-  // Account is 'iCloud' — 'Personal' is a FOLDER inside it, not an account
   const account = app.accounts.byName('iCloud');
   const folder = account.folders.byName('Personal');
-  const existing = folder.notes.whose({ name: title });
 
-  if (existing.length > 0) {
-    existing[0].body = html;
-    console.log(`Updated existing note: ${title}`);
+  const cachedId = readFile(idCachePath);
+  let target = null;
+
+  if (cachedId) {
+    const found = account.notes.whose({ id: cachedId.trim() });
+    if (found.length > 0) {
+      target = found[0];
+    }
+  }
+
+  if (target) {
+    target.body = html;
+    console.log(`Updated existing note (matched by id): ${title}`);
   } else {
     const newNote = app.Note({ name: title, body: html });
     folder.notes.push(newNote);
-    console.log(`Created new note: ${title}`);
+    const newId = newNote.id();
+    writeFile(idCachePath, newId);
+    console.log(`Created new note and cached its id for future syncs: ${title}`);
   }
 }

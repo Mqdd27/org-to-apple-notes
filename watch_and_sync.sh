@@ -1,17 +1,23 @@
 #!/bin/bash
-# watch & sync when there is any changes to the org files
-
-
 set -euo pipefail
 
 ORG_FILE="${1:?Usage: $0 <path-to-org-file> [note-title]}"
 NOTE_TITLE="${2:-Org Notes}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TMP_HTML="/tmp/$(basename "$ORG_FILE" .org)_sync.html"
+
+BASE_NAME="$(basename "$ORG_FILE" .org)"
+RAW_HTML="/tmp/${BASE_NAME}_raw.html"
+FIXED_HTML="/tmp/${BASE_NAME}_sync.html"
+
+CACHE_DIR="$SCRIPT_DIR/.note_ids"
+mkdir -p "$CACHE_DIR"
+SLUG="$(echo "$NOTE_TITLE" | tr '[:upper:] ' '[:lower:]_')"
+ID_CACHE="$CACHE_DIR/${SLUG}.id"
 
 sync_once() {
-  pandoc -f org -t html "$ORG_FILE" -o "$TMP_HTML"
-  osascript -l JavaScript "$SCRIPT_DIR/apple_notes_sync.js" "$NOTE_TITLE" "$TMP_HTML"
+  pandoc -f org -t html "$ORG_FILE" -o "$RAW_HTML"
+  python3 "$SCRIPT_DIR/fix_notes.py" "$RAW_HTML" "$FIXED_HTML"
+  osascript -l JavaScript "$SCRIPT_DIR/apple_notes_sync.js" "$NOTE_TITLE" "$FIXED_HTML" "$ID_CACHE"
 }
 
 echo "Doing initial sync..."
