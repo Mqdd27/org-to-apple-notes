@@ -43,13 +43,22 @@ function run(argv) {
   }
 
   if (target) {
-    target.body = html;
-    console.log(`Updated existing note (matched by id): ${title}`);
-  } else {
-    const newNote = app.Note({ name: title, body: html });
-    folder.notes.push(newNote);
-    const newId = newNote.id();
-    writeFile(idCachePath, newId);
-    console.log(`Created new note and cached its id for future syncs: ${title}`);
+    if (target.passwordProtected()) {
+      console.log(`Note is locked, skipping sync: ${title}`);
+      return;
+    }
+    try {
+      target.body = html;
+      console.log(`Updated existing note (matched by id): ${title}`);
+      return;
+    } catch (e) {
+      console.log(`Cached note can't be updated (likely deleted), creating a new one: ${e}`);
+    }
   }
+
+  const newNote = app.Note({ name: title, body: html });
+  folder.notes.push(newNote);
+  const newId = newNote.id();
+  writeFile(idCachePath, newId);
+  console.log(`Created new note and cached its id for future syncs: ${title}`);
 }
