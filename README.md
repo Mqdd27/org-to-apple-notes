@@ -35,6 +35,8 @@ Add this to `~/.config/doom/config.el`:
 ```
 
 Notes:
+- This only works one way only (Emacs -> Apple Notes)
+- On `apple_notes_sync.js` change the ```const folder = account.folder.byName``` to desired folder name
 - This calls `watch_and_sync.sh` as-is (no logic duplicated in elisp) — it starts
   once per opened `.org` buffer and `fswatch` inside the script handles every
   subsequent save.
