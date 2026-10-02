@@ -47,8 +47,9 @@ Notes:
   first.
 - After editing `config.el`, restart Emacs (or `M-x load-file` on it) so the
   hook is registered.
-- The note's title as it appears in the Notes list comes from the first line
-  of the rendered body (Apple Notes' own behavior), not the `NOTE_TITLE`
-  argument — that argument is only used to key the id-cache so re-syncs
+- The note's title in the Notes list comes from the org file's `#+title:`
+  (inserted as the first line of the body, which Apple Notes uses as the
+  title). Without `#+title:` it falls back to the first line of content. The
+  `NOTE_TITLE` argument is only used to key the id-cache so re-syncs
   update the same note instead of creating duplicates.
 

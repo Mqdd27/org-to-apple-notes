@@ -16,7 +16,7 @@ ID_CACHE="$CACHE_DIR/${SLUG}.id"
 
 sync_once() {
   pandoc -f org -t html "$ORG_FILE" -o "$RAW_HTML"
-  python3 "$SCRIPT_DIR/fix_notes.py" "$RAW_HTML" "$FIXED_HTML"
+  python3 "$SCRIPT_DIR/fix_notes.py" "$RAW_HTML" "$FIXED_HTML" "$ORG_FILE"
   osascript -l JavaScript "$SCRIPT_DIR/apple_notes_sync.js" "$NOTE_TITLE" "$FIXED_HTML" "$ID_CACHE"
 }
 
