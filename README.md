@@ -1,16 +1,39 @@
 # org-to-apple-notes
-Sync org files to apple notes
+Sync org files to Apple Notes (one way: org → Notes), with org checkboxes
+(`- [ ]` / `- [X]`) as native Apple Notes checklists. Syncing runs in the
+background: no prompts, and Notes never takes focus.
 
-Requires macOS 26+, an iCloud Notes account, `pandoc` and `fswatch`:
+## Installation
+
+Requires macOS 26+ and an iCloud Notes account (Notes only imports Markdown
+into iCloud notes).
+
+1. Install the dependencies:
+   ``` shell
+   brew install pandoc fswatch
+   ```
+2. Install the shortcut: open `Org to Apple Notes.shortcut` from this repo and
+   click **Add Shortcut**. Keep the name `Org to Apple Notes`, since
+   `apple_notes_sync.js` runs it by that name.
+3. Allow it to use Notes: run one sync by hand (see Usage) and choose
+   **Always Allow** when macOS asks. Until you do, background syncs wait on
+   that hidden prompt.
+4. Pick the target folder: notes go to the iCloud folder `Personal`. To use a
+   different folder (it must already exist), change this line in
+   `apple_notes_sync.js`:
+   ``` js
+   const folder = account.folders.byName('Personal');
+   ```
+
+## Usage
+
 ``` shell
-brew install pandoc fswatch
+./watch_and_sync.sh <path-to-org-file> [note-key]
 ```
 
-Then install the shortcut once: open `Org to Apple Notes.shortcut`, click
-**Add Shortcut**, and choose **Always Allow** when the first sync asks for
-Notes access. Notes' scripting API can't create checklists; this shortcut uses
-Notes' own Markdown importer so org checkboxes (`- [ ]` / `- [X]`) become
-native checklists, in the background.
+The script syncs once, then again on every save until you stop it with
+Ctrl+C. `note-key` (default `Org Notes`) names the id cache in `.note_ids/`
+that ties the org file to its note. Use a different key for each org file.
 
 ## Doom Emacs integration
 
@@ -25,7 +48,7 @@ Add this to `~/.config/doom/config.el`:
     (let* ((proc-name (concat "org-to-apple-notes:" buffer-file-name))
            (proc (get-process proc-name))
            (process-environment
-            (cons "PATH=/Users/macbook/.pyenv/shims:/opt/homebrew/bin:/usr/bin:/bin"
+            (cons "PATH=/opt/homebrew/bin:/usr/bin:/bin"
                   process-environment)))
       (if (process-live-p proc)
           (message "org-to-apple-notes: already watching %s" buffer-file-name)
@@ -40,24 +63,41 @@ Add this to `~/.config/doom/config.el`:
 (add-hook 'org-mode-hook #'mqdd/org-watch-apple-notes)
 ```
 
-Notes:
-- This only works one way only (Emacs -> Apple Notes)
-- Every save replaces the note with a fresh one (the old copy is deleted
-  permanently), so pins, note links and edits made in Notes don't survive a
-  sync.
-- On `apple_notes_sync.js` change the ```const folder = account.folder.byName``` to desired folder name
-- This calls `watch_and_sync.sh` as-is (no logic duplicated in elisp) — it starts
-  once per opened `.org` buffer and `fswatch` inside the script handles every
-  subsequent save.
 - Adjust the `PATH` and the repo path (`~/Documents/projects/org-to-apple-notes`)
   to match your machine. GUI apps like Emacs.app don't inherit your shell's
-  `PATH`, so `pandoc`/`fswatch` must be resolvable through this explicit
+  `PATH`, so `pandoc` and `fswatch` must be found through this explicit
   `PATH`.
 - After editing `config.el`, restart Emacs (or `M-x load-file` on it) so the
   hook is registered.
-- The note's title in the Notes list comes from the org file's `#+title:`
-  (inserted as the first line of the body, which Apple Notes uses as the
-  title). Without `#+title:` it falls back to the first line of content. The
-  `NOTE_TITLE` argument is only used to key the id-cache so re-syncs
-  replace the same note instead of creating duplicates.
+- This calls `watch_and_sync.sh` as-is: it starts once per opened `.org`
+  buffer, and `fswatch` inside the script handles every later save. Output
+  goes to the `*org-to-apple-notes*` buffer.
 
+## How it works
+
+1. `watch_and_sync.sh` converts the org file to Markdown with `pandoc` and
+   keeps the blank lines exactly as they are in the org file.
+2. `apple_notes_sync.js` runs the `Org to Apple Notes` shortcut, which uses
+   Notes' own Create Note action with "Interpret as Markdown" to create a new
+   note with native checklists.
+3. It then moves the note into the target folder and permanently deletes the
+   previous copy.
+
+Notes' AppleScript API can't create checklists (it drops them from HTML),
+which is why the sync uses a shortcut.
+
+## Notes
+
+- **Title:** the note's title comes from the org file's `#+title:`. Without
+  one, Notes uses the first line of content.
+- **Every save replaces the note:** a fresh note is created and the old copy
+  is permanently deleted. Pins, links to the note, and anything you ticked or
+  edited in Notes are lost on the next save.
+- **Locked notes** are skipped.
+- **Spacing:** org headlines become Notes headings (`*` → Heading,
+  `**` → Subheading). A paragraph that directly follows a list always gets
+  one empty line before it; without it, Notes merges the paragraph into the
+  list.
+- **After updating this repo,** restart running watchers (restart Emacs, or
+  kill the `org-to-apple-notes:*` processes and reopen the buffers). A running
+  watcher keeps using the old script.
