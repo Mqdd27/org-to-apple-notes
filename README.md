@@ -1,10 +1,16 @@
 # org-to-apple-notes
 Sync org files to apple notes
 
-Install beautifulsoup4 for better formatting from org to apple notes
+Requires macOS 26+, an iCloud Notes account, `pandoc` and `fswatch`:
 ``` shell
-pip3 install beautifulsoup4
+brew install pandoc fswatch
 ```
+
+Then install the shortcut once: open `Org to Apple Notes.shortcut`, click
+**Add Shortcut**, and choose **Always Allow** when the first sync asks for
+Notes access. Notes' scripting API can't create checklists; this shortcut uses
+Notes' own Markdown importer so org checkboxes (`- [ ]` / `- [X]`) become
+native checklists, in the background.
 
 ## Doom Emacs integration
 
@@ -36,20 +42,22 @@ Add this to `~/.config/doom/config.el`:
 
 Notes:
 - This only works one way only (Emacs -> Apple Notes)
+- Every save replaces the note with a fresh one (the old copy is deleted
+  permanently), so pins, note links and edits made in Notes don't survive a
+  sync.
 - On `apple_notes_sync.js` change the ```const folder = account.folder.byName``` to desired folder name
 - This calls `watch_and_sync.sh` as-is (no logic duplicated in elisp) — it starts
   once per opened `.org` buffer and `fswatch` inside the script handles every
   subsequent save.
 - Adjust the `PATH` and the repo path (`~/Documents/projects/org-to-apple-notes`)
   to match your machine. GUI apps like Emacs.app don't inherit your shell's
-  `PATH`, so `pandoc`/`python3`/`osascript` must be resolvable through this
-  explicit `PATH` — put whichever `python3` has `beautifulsoup4` installed
-  first.
+  `PATH`, so `pandoc`/`fswatch` must be resolvable through this explicit
+  `PATH`.
 - After editing `config.el`, restart Emacs (or `M-x load-file` on it) so the
   hook is registered.
 - The note's title in the Notes list comes from the org file's `#+title:`
   (inserted as the first line of the body, which Apple Notes uses as the
   title). Without `#+title:` it falls back to the first line of content. The
   `NOTE_TITLE` argument is only used to key the id-cache so re-syncs
-  update the same note instead of creating duplicates.
+  replace the same note instead of creating duplicates.
 
