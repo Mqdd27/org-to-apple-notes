@@ -53,7 +53,7 @@ sync_once() {
            inlist = item || (inlist && $0 ~ /^[ \t]/)
            blank = 0; print
          }' \
-    > "$SYNC_MD"
+    > "$SYNC_MD" || return 1  # set -e is off when called from `if`
   # One sync at a time across all watchers: apple_notes_sync.js finds the note
   # it created as "the note that wasn't there before", so concurrent syncs
   # would grab each other's notes.
@@ -66,6 +66,10 @@ sync_once
 
 echo "Watching $ORG_FILE for changes (Ctrl+C to stop)..."
 fswatch -o "$ORG_FILE" | while read -r _; do
-  sync_once
-  echo "$(date '+%H:%M:%S') synced -> Apple Notes: $NOTE_TITLE"
+  # A failed sync must not kill the watcher (set -e), or later saves are lost.
+  if sync_once; then
+    echo "$(date '+%H:%M:%S') synced -> Apple Notes: $NOTE_TITLE"
+  else
+    echo "$(date '+%H:%M:%S') sync FAILED, will retry on next save" >&2
+  fi
 done
