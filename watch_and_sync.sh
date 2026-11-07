@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Unique per watcher: two notes.org in different folders must not share a file.
 # Keep the .md extension, or the Shortcut won't read it as Markdown.
-SYNC_DIR="$(mktemp -d -t org-sync)"
+SYNC_DIR="$(mktemp -d "${TMPDIR:-/tmp}/org-sync.XXXXXX")"
 SYNC_MD="$SYNC_DIR/note.md"
 trap 'rm -rf "$SYNC_DIR"' EXIT
 
@@ -65,7 +65,8 @@ sync_once() {
 }
 
 echo "Doing initial sync..."
-sync_once
+# Same as below: a failed first sync must not stop the watcher.
+sync_once || echo "$(date '+%H:%M:%S') initial sync FAILED, will retry on next save" >&2
 
 echo "Watching $ORG_FILE for changes (Ctrl+C to stop)..."
 fswatch -o "$ORG_FILE" | while read -r _; do
