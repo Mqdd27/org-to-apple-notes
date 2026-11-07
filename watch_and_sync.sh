@@ -5,8 +5,9 @@ ORG_FILE="${1:?Usage: $0 <path-to-org-file> [note-title]}"
 NOTE_TITLE="${2:-Org Notes}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-BASE_NAME="$(basename "$ORG_FILE" .org)"
-SYNC_MD="/tmp/${BASE_NAME}_sync.md"
+# Unique per watcher: two notes.org in different folders must not share a file.
+SYNC_MD="$(mktemp -t org-sync)"
+trap 'rm -f "$SYNC_MD"' EXIT
 
 CACHE_DIR="$SCRIPT_DIR/.note_ids"
 mkdir -p "$CACHE_DIR"
@@ -58,7 +59,7 @@ sync_once() {
   # it created as "the note that wasn't there before", so concurrent syncs
   # would grab each other's notes.
   lockf /tmp/org-to-apple-notes.lock \
-    osascript -l JavaScript "$SCRIPT_DIR/apple_notes_sync.js" "$NOTE_TITLE" "$SYNC_MD" "$ID_CACHE"
+    osascript -l JavaScript "$SCRIPT_DIR/apple_notes_sync.js" "$NOTE_TITLE" "$SYNC_MD" "$ID_CACHE" "${NOTES_FOLDER:-Personal}"
 }
 
 echo "Doing initial sync..."

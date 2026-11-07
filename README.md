@@ -19,10 +19,9 @@ into iCloud notes).
    **Always Allow** when macOS asks. Until you do, background syncs wait on
    that hidden prompt.
 4. Pick the target folder: notes go to the iCloud folder `Personal`. To use a
-   different folder (it must already exist), change this line in
-   `apple_notes_sync.js`:
-   ``` js
-   const folder = account.folders.byName('Personal');
+   different folder (it must already exist), set `NOTES_FOLDER`:
+   ``` shell
+   NOTES_FOLDER=Notes ./watch_and_sync.sh notes.org "My Notes"
    ```
 
 ## Usage

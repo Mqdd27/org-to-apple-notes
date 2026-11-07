@@ -31,12 +31,13 @@ function run(argv) {
     const title = argv[0];
     const mdPath = argv[1];
     const idCachePath = argv[2];
+    const folderName = argv[3] || 'Personal';
 
     const app = Application('Notes');
     const account = app.accounts.byName('iCloud');
 
-    // Change this to the desired folder name if needed. For example, 'Notes' or 'Personal'.
-    const folder = account.folders.byName('Personal');
+    // Set NOTES_FOLDER when running watch_and_sync.sh; the folder must exist.
+    const folder = account.folders.byName(folderName);
 
     const cachedId = readFile(idCachePath);
     const old = cachedId ? account.notes.whose({ id: cachedId.trim() })()[0] : null;
