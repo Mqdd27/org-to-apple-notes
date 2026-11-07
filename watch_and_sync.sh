@@ -6,8 +6,10 @@ NOTE_TITLE="${2:-Org Notes}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Unique per watcher: two notes.org in different folders must not share a file.
-SYNC_MD="$(mktemp -t org-sync)"
-trap 'rm -f "$SYNC_MD"' EXIT
+# Keep the .md extension, or the Shortcut won't read it as Markdown.
+SYNC_DIR="$(mktemp -d -t org-sync)"
+SYNC_MD="$SYNC_DIR/note.md"
+trap 'rm -rf "$SYNC_DIR"' EXIT
 
 CACHE_DIR="$SCRIPT_DIR/.note_ids"
 mkdir -p "$CACHE_DIR"
